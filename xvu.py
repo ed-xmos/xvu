@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import socket
 import time
-import struct
 import sys
-import math
 import argparse
+
+import struct
+import math
 
 import pyaudio
 import Queue
@@ -129,7 +130,10 @@ class  xscope_handler():
       except:
         sys.stdout.write(".")
         sys.stdout.flush()
-        time.sleep(1)
+        try:
+          time.sleep(1)
+        except KeyboardInterrupt:
+          sys.exit(0)
         continue
       self.connected = True
       print "\rConnected on {}: {}".format(self.host, self.port)
@@ -140,7 +144,11 @@ class  xscope_handler():
       """
       self.sock.sendall(xscope_handler.XSCOPE_GET_REGISTRATION)
       print "Registering xscope probes:"
-      self.listen(self.sock)
+      try:
+        self.listen(self.sock)
+      except KeyboardInterrupt:
+        self.running = False
+        continue
 
   def listen(self, sock):
     probes = dict()
@@ -213,6 +221,7 @@ class  xscope_handler():
       #Much faster version of above assuming fixed message size for ints
       elif header == xscope_handler.XSCOPE_SOCKET_MSG_EVENT_RECORD:
         data = sock.recv(23)
+
         probe_idx = struct.unpack("B", data[0])[0]
         val = struct.unpack("i", data[7:11])[0]
         #print "probe: {}, val: {}".format(probes[probe_idx], val)
@@ -250,8 +259,7 @@ class  xscope_handler():
 
       else:
         print "Unhandled xscope header type: {}".format(header)
-
-
+    
   def exit(self):
     self.sock.shutdown(socket.SHUT_WR)
     self.running = False
@@ -278,6 +286,7 @@ class wave_writer():
    self.wf.close()
 
 
+#how many samples to handle at a time. Relates to VU, pyaudio and also wave write
 block_size = 4096
 
 parser = argparse.ArgumentParser(description='XMOS Audio Probe Tool', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -294,21 +303,23 @@ max_int = 2**(args.samp_depth - 1) - 1
 #args = vars(parser.parse_args())
 print args
 
-
-p = pyaudio.PyAudio()
-queue = Queue.Queue()
-ah = audio_handler(queue)
-stream = p.open(format=pyaudio.paInt16,
-                channels=1,
-                rate=args.samp_rate,
-                output=True,
-                frames_per_buffer=block_size,
-                stream_callback=ah.audio_callback)
-stream.start_stream()
+queue = None
+if type(args.monitor) == int:
+  queue = Queue.Queue()
+  p = pyaudio.PyAudio()
+  ah = audio_handler(queue)
+  stream = p.open(format=pyaudio.paInt16,
+                  channels=1,
+                  rate=args.samp_rate,
+                  output=True,
+                  frames_per_buffer=block_size,
+                  stream_callback=ah.audio_callback)
+  stream.start_stream()
 xs = xscope_handler(queue, args)
 
-stream.stop_stream()
-stream.close()
+if args.monitor:
+  stream.stop_stream()
+  stream.close()
+  p.terminate()
 
-p.terminate()
-
+sys.exit(0)
