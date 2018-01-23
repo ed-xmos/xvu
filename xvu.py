@@ -16,6 +16,7 @@ import wave
 class vu():
   def __init__(self, name, max_int, samp_rate):
     #print "vu __init__"
+    self.name = "{:12s}".format(name)
     self.peak = 0
     self.peak_time = time.time()
     self.old_time = time.time()
@@ -64,7 +65,7 @@ class vu():
   def display_log(self, val, peak, idx):
     line = "\r"
     line += "\033[" + str(idx + 1) + "B" #down
-    line += str(idx)
+    line += self.name
     log_peak = -100
     if (val > self.min_db):
       log_val = 20 * math.log(val / self.max_int, 10)
@@ -117,6 +118,7 @@ class  xscope_handler():
     self.port = args.port
     self.queue = queue
     self.do_monitor = False
+    self.n_vus = 0
     if type(args.monitor) is int:
       self.do_monitor = True
     self.connect()
@@ -137,17 +139,20 @@ class  xscope_handler():
         continue
       self.connected = True
       print "\rConnected on {}: {}".format(self.host, self.port)
+      print "Expecting xscope_int data: {}b @ {}Hz".format(args.samp_depth, args.samp_rate)
       """
       self.listen_thread = threading.Thread(target=self.listen, args=(self.sock,))
       self.listen_thread.demon = True
       self.listen_thread.start()
       """
       self.sock.sendall(xscope_handler.XSCOPE_GET_REGISTRATION)
-      print "Registering xscope probes:"
+      #print "Registering xscope probes:"
       try:
         self.listen(self.sock)
       except KeyboardInterrupt:
         self.running = False
+        #on exit, move curson down into clean screen area
+        print "\n" * self.n_vus
         continue
 
   def listen(self, sock):
@@ -160,6 +165,7 @@ class  xscope_handler():
       header = sock.recv(1) #Blocking so we use shutdown() further down to quit from ctrl-c
       if not header:
         self.running = False
+        print "\n" * self.n_vus
         continue
       header = struct.unpack("B", header)[0]
 
@@ -185,8 +191,10 @@ class  xscope_handler():
           #print "Param {}: {}".format(idx, val)
         if probe_name != None and probe_idx != None:
           probes[probe_idx] = probe_name
-          print 'Registered index: {}, probe: "{}"'.format(probe_idx, probe_name)
+          #print 'Registered index: {}, probe: "{}"'.format(probe_idx, probe_name)
           vus.append(vu(probe_name, max_int, self.args.samp_rate) )
+          print
+          self.n_vus += 1
           buffers_byte.append("")
           buffers_int.append([])
           if args.wav_file:
@@ -255,11 +263,12 @@ class  xscope_handler():
             continue
           data = sock.recv(chunk_size)
           val = struct.unpack(unpack_str, data[0:chunk_size])[0]
-          print "Param {}: len: {}  {}".format(idx, chunk_size, val)
+          #print "Param {}: len: {}  {}".format(idx, chunk_size, val)
 
       else:
         print "Unhandled xscope header type: {}".format(header)
-    
+
+
   def exit(self):
     self.sock.shutdown(socket.SHUT_WR)
     self.running = False
@@ -291,17 +300,15 @@ block_size = 4096
 
 parser = argparse.ArgumentParser(description='XMOS Audio Probe Tool', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-r','--samp_rate', help='Sample rate in Hz', type=int, default=16000)
-parser.add_argument('-s','--samp-depth', help='Number of bits in audio samples from device', type=int, default=32)
+parser.add_argument('-s','--samp-depth', help='Number of bits in audio samples from device xscope_int() output', type=int, default=32)
 parser.add_argument('-p','--port', help='Port of localhost used to commincate with xrun', type=int, default=6363)
 parser.add_argument('-w','--wav-file', help='Write wav file', type=str, required=False)
 parser.add_argument('-m','--monitor', help='Live monitor audio output of a probe. WARNING: May contain glitches', required=False, type=int)
 parser.add_argument('-n','--no-vu', help='Disable VU', action='store_true')
 args = parser.parse_args()
-print args
 max_int = 2**(args.samp_depth - 1) - 1
 
-#args = vars(parser.parse_args())
-print args
+#args = vars(parser.parse_args()) #turn args into dict
 
 queue = None
 if type(args.monitor) == int:
