@@ -200,7 +200,7 @@ class  xscope_handler():
           if args.wav_file:
             file_name_split = args.wav_file.split(".")
             file_name = file_name_split[0] + "_" + str(probe_idx) + ".wav"
-            wr.append(wave_writer(file_name) )
+            wr.append(wave_writer(file_name, self.args.samp_rate) )
 
           
           """
@@ -284,9 +284,9 @@ class audio_handler():
     return (audio, pyaudio.paContinue)
 
 class wave_writer():
-  def __init__(self, name):
+  def __init__(self, name, samp_rate):
     self.wf = wave.open(name, 'w')  
-    self.wf.setparams((1, (16 / 8), 48000, block_size, 'NONE', 'not compressed'))
+    self.wf.setparams((1, (16 / 8), samp_rate, block_size, 'NONE', 'not compressed'))
 
   def write(self, block):
     self.wf.writeframes(block)
