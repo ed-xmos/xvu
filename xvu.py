@@ -303,7 +303,7 @@ parser.add_argument('-r','--samp_rate', help='Sample rate in Hz', type=int, defa
 parser.add_argument('-s','--samp-depth', help='Number of bits in audio samples from device xscope_int() output', type=int, default=32)
 parser.add_argument('-p','--port', help='Port of localhost used to commincate with xrun', type=int, default=6363)
 parser.add_argument('-w','--wav-file', help='Write wav file', type=str, required=False)
-parser.add_argument('-m','--monitor', help='Live monitor audio output of a probe. WARNING: May contain glitches', required=False, type=int)
+parser.add_argument('-m','--monitor_channel', help='Live monitor audio output channel of a probe. WARNING: May contain glitches', required=False, type=int)
 parser.add_argument('-n','--no-vu', help='Disable VU', action='store_true')
 args = parser.parse_args()
 max_int = 2**(args.samp_depth - 1) - 1
