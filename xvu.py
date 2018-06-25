@@ -119,7 +119,7 @@ class  xscope_handler():
     self.queue = queue
     self.do_monitor = False
     self.n_vus = 0
-    if type(args.monitor) is int:
+    if type(args.monitor_channel) is int:
       self.do_monitor = True
     self.connect()
 
@@ -240,7 +240,7 @@ class  xscope_handler():
           #print len(buffers_byte[probe_idx])
           if not self.args.no_vu:
             vus[probe_idx].update(buffers_int[probe_idx], probe_idx)
-          if self.do_monitor and self.args.monitor == probe_idx:
+          if self.do_monitor and self.args.monitor_channel == probe_idx:
             self.queue.put(buffers_byte[probe_idx])
           if self.args.wav_file:
             wr[probe_idx].write(buffers_byte[probe_idx])
@@ -311,7 +311,7 @@ max_int = 2**(args.samp_depth - 1) - 1
 #args = vars(parser.parse_args()) #turn args into dict
 
 queue = None
-if type(args.monitor) == int:
+if type(args.monitor_channel) == int:
   queue = Queue.Queue()
   p = pyaudio.PyAudio()
   ah = audio_handler(queue)
@@ -324,7 +324,7 @@ if type(args.monitor) == int:
   stream.start_stream()
 xs = xscope_handler(queue, args)
 
-if args.monitor:
+if args.monitor_channel:
   stream.stop_stream()
   stream.close()
   p.terminate()
