@@ -8,7 +8,7 @@ import struct
 import math
 
 import pyaudio
-import Queue
+import queue
 
 import wave
 
@@ -124,7 +124,7 @@ class  xscope_handler():
     self.connect()
 
   def connect(self):
-    print "Please start target app: xrun --xscope-port localhost:{} <binary.xe>".format(self.port)
+    print("Please start target app: xrun --xscope-port localhost:{} <binary.xe>".format(self.port))
     while not self.connected:
       try:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -138,8 +138,8 @@ class  xscope_handler():
           sys.exit(0)
         continue
       self.connected = True
-      print "\rConnected on {}: {}".format(self.host, self.port)
-      print "Expecting xscope_int data: {}b @ {}Hz".format(args.samp_depth, args.samp_rate)
+      print("\rConnected on {}: {}".format(self.host, self.port))
+      print("Expecting xscope_int data: {}b @ {}Hz".format(args.samp_depth, args.samp_rate))
       """
       self.listen_thread = threading.Thread(target=self.listen, args=(self.sock,))
       self.listen_thread.demon = True
@@ -152,7 +152,7 @@ class  xscope_handler():
       except KeyboardInterrupt:
         self.running = False
         #on exit, move curson down into clean screen area
-        print "\n" * self.n_vus
+        print("\n" * self.n_vus)
         continue
 
   def listen(self, sock):
@@ -165,7 +165,7 @@ class  xscope_handler():
       header = sock.recv(1) #Blocking so we use shutdown() further down to quit from ctrl-c
       if not header:
         self.running = False
-        print "\n" * self.n_vus
+        print("\n" * self.n_vus)
         continue
       header = struct.unpack("B", header)[0]
 
@@ -193,7 +193,7 @@ class  xscope_handler():
           probes[probe_idx] = probe_name
           #print 'Registered index: {}, probe: "{}"'.format(probe_idx, probe_name)
           vus.append(vu(probe_name, max_int, self.args.samp_rate) )
-          print
+          print()
           self.n_vus += 1
           buffers_byte.append("")
           buffers_int.append([])
@@ -259,14 +259,14 @@ class  xscope_handler():
           else:
             chunk_size = val
             data = sock.recv(chunk_size).rstrip()
-            print data
+            print(data)
             continue
           data = sock.recv(chunk_size)
           val = struct.unpack(unpack_str, data[0:chunk_size])[0]
           #print "Param {}: len: {}  {}".format(idx, chunk_size, val)
 
       else:
-        print "Unhandled xscope header type: {}".format(header)
+        print("Unhandled xscope header type: {}".format(header))
 
 
   def exit(self):
@@ -312,7 +312,7 @@ max_int = 2**(args.samp_depth - 1) - 1
 
 queue = None
 if type(args.monitor_channel) == int:
-  queue = Queue.Queue()
+  queue = queue.Queue()
   p = pyaudio.PyAudio()
   ah = audio_handler(queue)
   stream = p.open(format=pyaudio.paInt16,
